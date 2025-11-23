@@ -1,0 +1,36 @@
+---
+title: "Regressão Linear"
+author: "Gerson Oliveira"
+date: "2025-11-15"
+categories: [Linear, code, analysis]
+image: "Rlinear.png"
+jupyter: python3
+---
+
+Neste post irei desmonstrar uma API de calculo de **Regressão Linear**.
+
+```{python}
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+X = np.loadtxt('X.txt').reshape(-1,1)
+Y = np.loadtxt('Y.txt')
+
+model = LinearRegression()
+model.fit(X, Y)
+
+pred = model.predict(X)
+
+plt.scatter(X, Y)
+plt.plot(X, pred)
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.title('Regressao Linear')
+plt.savefig('grafico.png')
+print('Coeficiente:', model.coef_[0], 'Intercepto:', model.intercept_)
+
+```
+
+

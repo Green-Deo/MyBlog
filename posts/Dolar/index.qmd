@@ -1,0 +1,53 @@
+---
+title: "Cotação de Dolar por Período"
+author: "Gerson Oliveira"
+date: "2025-11-15"
+categories: [Dolar, code, analysis]
+image: "dolar.png"
+jupyter: python3
+---
+
+Neste post irei desmonstrar uma API sobre cotação do dolar.
+
+```{python}
+import requests
+import pandas as pd
+import calendar
+from datetime import datetime, timedelta
+import plotly.express as px
+
+def get_dollar_period(mmyyyy: str):
+    first_date = datetime.strptime(mmyyyy, "%m%Y")
+    last_date = first_date.replace(day=calendar.monthrange(first_date.year, first_date.month)[1])
+
+    url = (
+        "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+        "CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"
+        f"?@dataInicial='{first_date.strftime('%m-%d-%Y')}'"
+        f"&@dataFinalCotacao='{last_date.strftime('%m-%d-%Y')}'"
+        "&$format=json"
+    )
+
+    r = requests.get(url)
+    data = r.json().get("value", [])
+
+    df = pd.DataFrame(data)
+    df["dataHoraCotacao"] = pd.to_datetime(df["dataHoraCotacao"])
+    df = df.sort_values("dataHoraCotacao")
+
+    full_range = pd.date_range(first_date, last_date)
+    df = df.set_index("dataHoraCotacao").reindex(full_range, method="ffill")
+    df = df.rename_axis("Data").reset_index()
+
+    fig = px.line(df, x="Data", y="cotacaoVenda", title="Cotação do Dólar no Período")
+    fig.show()
+
+    return df
+
+if __name__ == "__main__":
+    get_dollar_period("082021")
+
+
+```
+
+

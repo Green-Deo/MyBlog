@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "MyBlog",
+    "section": "",
+    "text": "Regressão Linear\n\n\n\nLinear\n\ncode\n\nanalysis\n\n\n\n\n\n\n\n\n\nNov 15, 2025\n\n\nGerson Oliveira\n\n\n\n\n\n\n\n\n\n\n\n\nCotação de Dolar por Período\n\n\n\nDolar\n\ncode\n\nanalysis\n\n\n\n\n\n\n\n\n\nNov 15, 2025\n\n\nGerson Oliveira\n\n\n\n\n\n\n\n\n\n\n\n\nMonitoramento de Frota de Onibus\n\n\n\nMonitoramento\n\ncode\n\nanalysis\n\n\n\n\n\n\n\n\n\nNov 15, 2025\n\n\nGerson Oliveira\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html",
+    "href": "posts/post-with-code/index.html",
+    "title": "Cotação de Dolar por Período",
+    "section": "",
+    "text": "Neste post irei desmonstrar uma API sobre cotação do dolar.\n\nimport requests\nimport pandas as pd\nimport calendar\nfrom datetime import datetime, timedelta\nimport plotly.express as px\n\ndef get_dollar_period(mmyyyy: str):\n    first_date = datetime.strptime(mmyyyy, \"%m%Y\")\n    last_date = first_date.replace(day=calendar.monthrange(first_date.year, first_date.month)[1])\n\n    url = (\n        \"https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/\"\n        \"CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)\"\n        f\"?@dataInicial='{first_date.strftime('%m-%d-%Y')}'\"\n        f\"&@dataFinalCotacao='{last_date.strftime('%m-%d-%Y')}'\"\n        \"&$format=json\"\n    )\n\n    r = requests.get(url)\n    data = r.json().get(\"value\", [])\n\n    df = pd.DataFrame(data)\n    df[\"dataHoraCotacao\"] = pd.to_datetime(df[\"dataHoraCotacao\"])\n    df = df.sort_values(\"dataHoraCotacao\")\n\n    full_range = pd.date_range(first_date, last_date)\n    df = df.set_index(\"dataHoraCotacao\").reindex(full_range, method=\"ffill\")\n    df = df.rename_axis(\"Data\").reset_index()\n\n    fig = px.line(df, x=\"Data\", y=\"cotacaoVenda\", title=\"Cotação do Dólar no Período\")\n    fig.show()\n\n    return df\n\nif __name__ == \"__main__\":\n    get_dollar_period(\"082021\")"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this blog"
+  },
+  {
+    "objectID": "posts/welcome/index.html",
+    "href": "posts/welcome/index.html",
+    "title": "Welcome To My Blog",
+    "section": "",
+    "text": "This is the first post in a Quarto blog. Welcome!\n\nSince this post doesn’t specify an explicit image, the first image in the post will be used in the listing page of posts."
+  },
+  {
+    "objectID": "posts/Onibus/index.html",
+    "href": "posts/Onibus/index.html",
+    "title": "Monitoramento de Frota de Onibus",
+    "section": "",
+    "text": "Neste post irei desmonstrar uma API para monitoramento de Linhas de onibus.\n\nimport os\nimport requests\nfrom dotenv import load_dotenv\nimport folium\n\ndef main():\n    load_dotenv(\".env\")\n    token = os.getenv(\"SPTRANS_TOKEN\")\n    if not token:\n        raise ValueError(\"SPTRANS_TOKEN not found in .env. Please check your environment file.\")\n\n    \n    s = requests.Session()\n    r = s.post(f\"http://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={token}\")\n    if r.text.lower() != \"true\":\n        raise RuntimeError(\"Authentication failed. Check your SPTRANS_TOKEN or API status.\")\n\n    \n    linha_busca = s.get(\"http://api.olhovivo.sptrans.com.br/v2.1/Linha/Buscar?termosBusca=607C-10\").json()\n\n    \n    if not linha_busca:\n        print(\"ATENÇÃO: A linha '607C-10' não foi encontrada na busca.\")\n        return \n\n    linha = linha_busca[0]\n    codigo = linha[\"cl\"]\n\n    \n    paradas = s.get(\n        f\"http://api.olhovivo.sptrans.com.br/v2.1/Parada/BuscarParadasPorLinha?codigoLinha={codigo}\"\n    ).json()\n\n    pos = s.get(\n        f\"http://api.olhovivo.sptrans.com.br/v2.1/Posicao/Linha?codigoLinha={codigo}\"\n    ).json()\n\n    \n    if paradas:\n        \n        print(f\"Linha {linha['lt']} ({linha['tl']}) encontrada. Gerando mapa...\")\n        \n        m = folium.Map(location=[paradas[0][\"py\"], paradas[0][\"px\"]], zoom_start=14)\n\n        \n        for p in paradas:\n            folium.Marker(\n                location=[p[\"py\"], p[\"px\"]],\n                popup=p[\"np\"],\n                icon=folium.Icon(color=\"blue\")\n            ).add_to(m)\n\n        \n        for v in pos.get(\"vs\", []):\n            folium.Marker(\n                location=[v[\"py\"], v[\"px\"]],\n                popup=f\"Ônibus {v['p']}\",\n                icon=folium.Icon(color=\"red\")\n            ).add_to(m)\n\n        m.save(\"mapa_linha_607C10.html\")\n        print(\"Mapa salvo com sucesso como 'mapa_linha_607C10.html'.\")\n    else:\n        \n        print(f\"ATENÇÃO: Não foi encontrada nenhuma parada para a linha com código {codigo}.\")\n\n\nif __name__ == \"__main__\":\n    main()\n\nATENÇÃO: Não foi encontrada nenhuma parada para a linha com código 1977."
+  },
+  {
+    "objectID": "posts/RLinear/index.html",
+    "href": "posts/RLinear/index.html",
+    "title": "Regressão Linear",
+    "section": "",
+    "text": "Neste post irei desmonstrar uma API de calculo de Regressão Linear.\n\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.linear_model import LinearRegression\n\nX = np.loadtxt('X.txt').reshape(-1,1)\nY = np.loadtxt('Y.txt')\n\nmodel = LinearRegression()\nmodel.fit(X, Y)\n\npred = model.predict(X)\n\nplt.scatter(X, Y)\nplt.plot(X, pred)\nplt.xlabel('X')\nplt.ylabel('Y')\nplt.title('Regressao Linear')\nplt.savefig('grafico.png')\nprint('Coeficiente:', model.coef_[0], 'Intercepto:', model.intercept_)\n\nCoeficiente: 983.8895333668877 Intercepto: 403.86455678909624"
+  },
+  {
+    "objectID": "posts/Dolar/index.html",
+    "href": "posts/Dolar/index.html",
+    "title": "Cotação de Dolar por Período",
+    "section": "",
+    "text": "Neste post irei desmonstrar uma API sobre cotação do dolar.\n\nimport requests\nimport pandas as pd\nimport calendar\nfrom datetime import datetime, timedelta\nimport plotly.express as px\n\ndef get_dollar_period(mmyyyy: str):\n    first_date = datetime.strptime(mmyyyy, \"%m%Y\")\n    last_date = first_date.replace(day=calendar.monthrange(first_date.year, first_date.month)[1])\n\n    url = (\n        \"https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/\"\n        \"CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)\"\n        f\"?@dataInicial='{first_date.strftime('%m-%d-%Y')}'\"\n        f\"&@dataFinalCotacao='{last_date.strftime('%m-%d-%Y')}'\"\n        \"&$format=json\"\n    )\n\n    r = requests.get(url)\n    data = r.json().get(\"value\", [])\n\n    df = pd.DataFrame(data)\n    df[\"dataHoraCotacao\"] = pd.to_datetime(df[\"dataHoraCotacao\"])\n    df = df.sort_values(\"dataHoraCotacao\")\n\n    full_range = pd.date_range(first_date, last_date)\n    df = df.set_index(\"dataHoraCotacao\").reindex(full_range, method=\"ffill\")\n    df = df.rename_axis(\"Data\").reset_index()\n\n    fig = px.line(df, x=\"Data\", y=\"cotacaoVenda\", title=\"Cotação do Dólar no Período\")\n    fig.show()\n\n    return df\n\nif __name__ == \"__main__\":\n    get_dollar_period(\"082021\")"
+  }
+]

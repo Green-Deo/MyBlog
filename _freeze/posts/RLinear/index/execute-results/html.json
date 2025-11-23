@@ -1,0 +1,12 @@
+{
+  "hash": "0ca62a366af81fcfc511ab85f44eadf2",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Regressão Linear\"\nauthor: \"Gerson Oliveira\"\ndate: \"2025-11-15\"\ncategories: [Linear, code, analysis]\nimage: \"Rlinear.png\"\njupyter: python3\n---\n\nNeste post irei desmonstrar uma API de calculo de **Regressão Linear**.\n\n::: {#fcf8d144 .cell execution_count=1}\n``` {.python .cell-code}\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.linear_model import LinearRegression\n\nX = np.loadtxt('X.txt').reshape(-1,1)\nY = np.loadtxt('Y.txt')\n\nmodel = LinearRegression()\nmodel.fit(X, Y)\n\npred = model.predict(X)\n\nplt.scatter(X, Y)\nplt.plot(X, pred)\nplt.xlabel('X')\nplt.ylabel('Y')\nplt.title('Regressao Linear')\nplt.savefig('grafico.png')\nprint('Coeficiente:', model.coef_[0], 'Intercepto:', model.intercept_)\n```\n\n::: {.cell-output .cell-output-stdout}\n```\nCoeficiente: 983.8895333668877 Intercepto: 403.86455678909624\n```\n:::\n\n::: {.cell-output .cell-output-display}\n![](index_files/figure-html/cell-2-output-2.png){width=610 height=449}\n:::\n:::\n\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

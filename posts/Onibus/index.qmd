@@ -1,0 +1,83 @@
+---
+title: "Monitoramento de Frota de Onibus"
+author: "Gerson Oliveira"
+date: "2025-11-15"
+categories: [Monitoramento, code, analysis]
+image: "onibus.jpg"
+jupyter: python3
+---
+
+Neste post irei desmonstrar uma API para monitoramento de Linhas de onibus.
+
+```{python}
+import os
+import requests
+from dotenv import load_dotenv
+import folium
+
+def main():
+    load_dotenv(".env")
+    token = os.getenv("SPTRANS_TOKEN")
+    if not token:
+        raise ValueError("SPTRANS_TOKEN not found in .env. Please check your environment file.")
+
+    
+    s = requests.Session()
+    r = s.post(f"http://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={token}")
+    if r.text.lower() != "true":
+        raise RuntimeError("Authentication failed. Check your SPTRANS_TOKEN or API status.")
+
+    
+    linha_busca = s.get("http://api.olhovivo.sptrans.com.br/v2.1/Linha/Buscar?termosBusca=607C-10").json()
+
+    
+    if not linha_busca:
+        print("ATENÇÃO: A linha '607C-10' não foi encontrada na busca.")
+        return 
+
+    linha = linha_busca[0]
+    codigo = linha["cl"]
+
+    
+    paradas = s.get(
+        f"http://api.olhovivo.sptrans.com.br/v2.1/Parada/BuscarParadasPorLinha?codigoLinha={codigo}"
+    ).json()
+
+    pos = s.get(
+        f"http://api.olhovivo.sptrans.com.br/v2.1/Posicao/Linha?codigoLinha={codigo}"
+    ).json()
+
+    
+    if paradas:
+        
+        print(f"Linha {linha['lt']} ({linha['tl']}) encontrada. Gerando mapa...")
+        
+        m = folium.Map(location=[paradas[0]["py"], paradas[0]["px"]], zoom_start=14)
+
+        
+        for p in paradas:
+            folium.Marker(
+                location=[p["py"], p["px"]],
+                popup=p["np"],
+                icon=folium.Icon(color="blue")
+            ).add_to(m)
+
+        
+        for v in pos.get("vs", []):
+            folium.Marker(
+                location=[v["py"], v["px"]],
+                popup=f"Ônibus {v['p']}",
+                icon=folium.Icon(color="red")
+            ).add_to(m)
+
+        m.save("mapa_linha_607C10.html")
+        print("Mapa salvo com sucesso como 'mapa_linha_607C10.html'.")
+    else:
+        
+        print(f"ATENÇÃO: Não foi encontrada nenhuma parada para a linha com código {codigo}.")
+
+
+if __name__ == "__main__":
+    main()
+
+```
